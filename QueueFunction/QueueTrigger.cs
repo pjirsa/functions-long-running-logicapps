@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Extensions.Logging;
 
 namespace QueueFunction
 {
@@ -10,10 +10,10 @@ namespace QueueFunction
         [FunctionName("QueueTrigger")]
         public static void Run(
             [QueueTrigger("request")]string logicAppRequest, 
-            TraceWriter log, 
+            ILogger log, 
             [Queue("response")] out string logicAppResponse)
         {
-            log.Info($"got the request from Logic Apps: {logicAppRequest}");
+            log.LogInformation($"got the request from Logic Apps: {logicAppRequest}");
             Thread.Sleep(TimeSpan.FromMinutes(3));
             logicAppResponse = "Work Finished";
         }
