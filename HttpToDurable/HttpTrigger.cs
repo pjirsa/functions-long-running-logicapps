@@ -5,8 +5,10 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Extensions.Logging;
 
 namespace HttpToDurable
 {
@@ -15,8 +17,8 @@ namespace HttpToDurable
         [FunctionName("HttpTrigger_HttpStart")]
         public static async Task<HttpResponseMessage> HttpStart(
             [HttpTrigger(AuthorizationLevel.Function, "post")]HttpRequestMessage req,
-            [OrchestrationClient]DurableOrchestrationClient starter,
-            TraceWriter log)
+            [DurableClient]IDurableOrchestrationClient starter,
+            ILogger log)
         {
             // Function input comes from the request content.
             ProcessRequest requestData = await req.Content.ReadAsAsync<ProcessRequest>();
@@ -24,7 +26,7 @@ namespace HttpToDurable
             // Starting a new orchestrator with request data
             string instanceId = await starter.StartNewAsync("HttpTrigger_Orchestrator", requestData);
 
-            log.Info($"Started orchestration with ID = '{instanceId}'.");
+            log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
 
             var response =  starter.CreateCheckStatusResponse(req, instanceId);
 
@@ -37,7 +39,8 @@ namespace HttpToDurable
 
         [FunctionName("HttpTrigger_Orchestrator")]
         public static async Task<List<string>> RunOrchestrator(
-            [OrchestrationTrigger] DurableOrchestrationContext context)
+            [OrchestrationTrigger] IDurableOrchestrationContext context,
+            ILogger log)
         {
             var outputs = new List<string>();
 
@@ -48,9 +51,9 @@ namespace HttpToDurable
         }
 
         [FunctionName("HttpTrigger_DoWork")]
-        public static string DoWork([ActivityTrigger] ProcessRequest requestData, TraceWriter log)
+        public static string DoWork([ActivityTrigger] ProcessRequest requestData, ILogger log)
         {
-            log.Info($"Doing work on data {requestData.data}.");
+            log.LogInformation($"Doing work on data {requestData.data}.");
             Thread.Sleep(TimeSpan.FromMinutes(3));
             return "some response data";
         }
